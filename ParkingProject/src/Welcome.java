@@ -1,179 +1,258 @@
 import javax.swing.*;
 import java.awt.*;
-import javax.swing.border.Border;
-import java.awt.event.*;
 import java.sql.*;
-public class Welcome extends JFrame{
 
-//    Class Constructor
-    public Welcome(){
+public class Welcome extends JFrame {
+    private int capacity = 50;      // total number of parking spots available
+
+    // data base parameters
+    private final String url = "jdbc:mysql://localhost:3307/parking";
+    private final String username = "root";
+    private final String password = "";
+
+    // Component declarations
+    private JPanel mainPanel;
+    private JPanel inputPanel;
+    private JPanel statusPanel;
+    private JTextField searchBar;
+    private JButton searchAddButton;
+    private JButton getTotalCarsButton;
+    private JLabel mainLabel;
+    private JLabel spaceLabel;
+    private JLabel rateLabel;
+    private JLabel totalCarsLabel;
+
+    //  Constructor
+    public Welcome() {
         initComponents();   // initializes components
     }
 
+    /**
+     * Function: initComponents
+     * initializes all the GUI components of the frame
+     */
+    private void initComponents() {
+        mainPanel = new JPanel(new GridBagLayout());        // creates main panel
 
-    int capacity = 50;
-    final String url = "jdbc:mysql://localhost:3307/parking";
-    final String username = "root";
-    final String password = "";
-    // Component declarations
-    JPanel mainPanel;
-    JPanel inputPanel;
-    JPanel statusPanel;
-    JTextField searchBar;
-    JButton searchAddButton;
-    JButton getTotalCarsButton;
-    JLabel mainLabel;
-    JLabel spaceLabel;
-    JLabel rateLabel;
-    JLabel totalCarsLabel;
-    private void initComponents(){
-        mainPanel = new JPanel();
-        inputPanel = new JPanel();
-        statusPanel = new JPanel(new GridLayout(4,1));
-        mainLabel = new JLabel("Enter Vehicle Number");
-        searchBar = new JTextField(20);
-        searchAddButton = new JButton("Search / Add");
+        //  Sets Constraints for GridBag Layout
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.insets = new Insets(10, 10, 10, 10); // Add padding
 
-        spaceLabel = new JLabel("Parking Spaces Left: 50");
-        rateLabel = new JLabel("Hourly Rate: 20.00");
-        totalCarsLabel = new JLabel("Total Cars Parked: N/A");
-        getTotalCarsButton = new JButton("Get Total Cars");
+        // Adds styling to child panels
+        inputPanel = createStyledPanel();
+        statusPanel = createStyledPanel();
 
-        // Style Label
-        Font boldFont = new Font(mainLabel.getFont().getFontName(), Font.BOLD, mainLabel.getFont().getSize());
-        mainLabel.setFont(boldFont);
+        //  Components of Input Panel
+        mainLabel = new JLabel("Enter Vehicle Number");     // Label
+        searchBar = new JTextField(20);     // inputField for searching
+        searchAddButton = new JButton("Search / Add");      // Action button for the search box
 
-        // add action listener to button
-        searchAddButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String carNumber = searchBar.getText().toLowerCase();
-                    if(carNumber.isEmpty()){
-                        JOptionPane.showMessageDialog(mainPanel, "Enter Vehicle Number!");
-                    }else{
-                        boolean carExists = searchCar(carNumber);
+        //  Components of Status Panel
+        spaceLabel = new JLabel("Parking Spaces Left: 50"); // Displays parking spaces left
+        rateLabel = new JLabel("Hourly Rate: 20.00");   // Displays hourly Rates
+        totalCarsLabel = new JLabel("Total Cars Parked: N/A");  // Displays number of currently parked cars
+        getTotalCarsButton = new JButton("Get Total Cars");     // Action button to get the number of cars currently parked
 
-                        if(!carExists){
-                            openAddCarFrame(carNumber);
-                        }else {
-                            openExitCarFrame(carNumber);
-                        }
-                    }
-
-
-                searchBar.setText("");
+        // Add action listener to Search button
+        /**
+         * Anynomous function that gets the "Vehicle Number" from the TextBox
+         * First checks if the "Vehicle Number is Empty or not
+         * if it's empty pop-ups a window letting the user know
+         *
+         * for "Vehicle Number" checks if it's already present the parking
+         * if Vehicle is not in the database i.e a new car
+         * Add Vehicle Window is started
+         * if the Vehicle is in the database i.e already parked
+         * Ecit Vehicle Window is started
+         */
+        searchAddButton.addActionListener(e -> {
+            String carNumber = searchBar.getText().toLowerCase();
+            if (carNumber.isEmpty()) {
+                JOptionPane.showMessageDialog(mainPanel, "Enter Vehicle Number!");
+            } else {
+                boolean carExists = searchCar(carNumber);
+                if (!carExists) {
+                    openAddCarFrame(carNumber);
+                } else {
+                    openExitCarFrame(carNumber);
+                }
             }
+            searchBar.setText("");
         });
 
-        inputPanel.add(mainLabel, BorderLayout.NORTH);   // add main label to panel
-        inputPanel.add(searchBar, BorderLayout.CENTER);   // add text box to panel
-        inputPanel.add(searchAddButton, BorderLayout.SOUTH); // add button to panel
+        // Added components to Input Panel
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        inputPanel.add(mainLabel, constraints);
 
+        constraints.gridy = 1;
+        inputPanel.add(searchBar, constraints);
 
-        getTotalCarsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int totalCars = getTotalCars();
-                totalCarsLabel.setText("Total Cars Parked: " + totalCars);
-                int spaceRemainig = capacity - totalCars;
-                spaceLabel.setText(("Parking Spaces Left: " + spaceRemainig));
-            }
+        constraints.gridy = 2;
+        inputPanel.add(searchAddButton, constraints);
+
+        // Add Action listener to Status Button
+        /**
+         * Contains a function "getTotalCars"
+         * "getTotalCard" returns the total number of cars present in the database
+         * The returned value is then subtracted from the totalCapacity of the parking space to get the current available space
+         */
+        getTotalCarsButton.addActionListener(e -> {
+            int totalCars = getTotalCars();
+            totalCarsLabel.setText("Total Cars Parked: " + totalCars);
+            int spaceRemaining = capacity - totalCars;
+            spaceLabel.setText("Parking Spaces Left: " + spaceRemaining);
         });
 
+        // Add components to Status Panel
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        statusPanel.add(spaceLabel, constraints);
 
-        statusPanel.add(spaceLabel, BorderLayout.NORTH);
-        statusPanel.add(rateLabel, BorderLayout.CENTER);
-        statusPanel.add(totalCarsLabel, BorderLayout.SOUTH);
-        statusPanel.add(getTotalCarsButton, BorderLayout.EAST);
+        constraints.gridy = 1;
+        statusPanel.add(rateLabel, constraints);
 
-        Border blackline;
-        blackline = BorderFactory.createLineBorder(Color.black);
+        constraints.gridy = 2;
+        statusPanel.add(totalCarsLabel, constraints);
 
-        inputPanel.setBorder(blackline);
-        statusPanel.setBorder(blackline);
+        constraints.gridy = 3;
+        constraints.anchor = GridBagConstraints.LINE_END;
+        statusPanel.add(getTotalCarsButton, constraints);
 
-
+        // Add child panels to main panel
         mainPanel.add(inputPanel);
         mainPanel.add(statusPanel);
-        add(mainPanel); // add panel to frame
 
-        // frame settings
+        // Add the main panel to the frame
+        add(mainPanel);
+
+        // panel settings
         inputPanel.setPreferredSize(new Dimension(400, 200));
         statusPanel.setPreferredSize(new Dimension(200, 200));
-        setSize(700,250);
+
+        //  Frame Settings
+        setSize(900, 350);
         setVisible(true);
         setTitle("Parking Management");
     }
 
-    private int getTotalCars() {
-        Connection conn = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet =  null;
-        int totalCars = 0;
-
-        try {
-            conn = DriverManager.getConnection(url, username, password);
-            String sql = "SELECT COUNT(*) AS total_cars FROM cars";
-            preparedStatement = conn.prepareStatement(sql);
-            resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next()) {
-                totalCars = resultSet.getInt("total_cars");
+    // Styling for child panels
+    private JPanel createStyledPanel() {
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int shadowWidth = 5;
+                int shadowHeight = 5;
+                Color shadowColor = new Color(0, 0, 0, 50);
+                int x = 0;
+                int y = 0;
+                int width = getWidth() - shadowWidth;
+                int height = getHeight() - shadowHeight;
+                g2d.setColor(shadowColor);
+                g2d.fillRect(x + width, y + shadowHeight, shadowWidth, height);
+                g2d.fillRect(x + shadowWidth, y + height, width, shadowHeight);
             }
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,  e.getMessage());
-            return 0;
-        }
-
-        return totalCars;
+        };
+        panel.setLayout(new GridBagLayout());
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.BLACK, 1),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        return panel;
     }
 
-    // Search for a car in the database
-    private boolean searchCar(String carNumber) {
-        // Replace with your MySQL database connection details
+    /**
+     * Function : getTotalCars
+     * Gets the total number of cars in the database
+     * i.e all the cars currently parked in the parking space
+     * @return
+     */
+    private int getTotalCars() {
         try {
-            Connection conn = DriverManager.getConnection(url, username, password);
-            String sql = "SELECT * FROM cars WHERE car_number = ?";
-            PreparedStatement preparedStatement = conn.prepareStatement(sql);
-            preparedStatement.setString(1, carNumber);
+            Connection conn = DriverManager.getConnection(url, username, password);     // Starts connection to the database
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT COUNT(*) AS total_cars FROM cars"); // mySQL query
             ResultSet resultSet = preparedStatement.executeQuery();
 
-            return resultSet.next(); // Return true if car exists
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,  e.getMessage());
-            return false;
-        }
-    }
-
-    private void openAddCarFrame(String carNumber){
-        Parking p = new Parking(carNumber);
-        this.dispose();
-    }
-
-    private void openExitCarFrame(String carNumber){
-        String arrivalTime = null;
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
-        try {
-            connection = DriverManager.getConnection(url, username, password);
-            String sqlQuery = "SELECT time_in FROM cars WHERE car_number = ?";
-            preparedStatement = connection.prepareStatement(sqlQuery);
-            preparedStatement.setString(1, carNumber);
-
-            resultSet = preparedStatement.executeQuery();
-
-            // Check if a result was found
+            // if result is found from successfully running the query
             if (resultSet.next()) {
-                // Retrieve the arrival time from the result set
-                arrivalTime = resultSet.getString("time_in");
+                return resultSet.getInt("total_cars");
             }
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,  e.getMessage());
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
+        return 0;
+    }
+
+    /**
+     * Function: searchCar
+     * @param carNumber
+     *
+     * Searches for a vehicle with "carNumber" in the database
+     * @return
+     */
+    private boolean searchCar(String carNumber) {
+        try {
+            Connection conn = DriverManager.getConnection(url, username, password);
+            PreparedStatement preparedStatement = conn.prepareStatement("SELECT * FROM cars WHERE car_number = ?");
+            preparedStatement.setString(1, carNumber);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            return resultSet.next(); // Return true if car exists
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Function: openAddCarFrame
+     * @param carNumber
+     *
+     * Disposes current window and opens "Parking" window
+     * "Parking" window enables the operator to onload a new vehicle
+     */
+    private void openAddCarFrame(String carNumber) {
+        new Parking(carNumber);
+        dispose();
+    }
+
+    /**
+     * Function: openExitCarFrame
+     * @param carNumber
+     *
+     * Disposes the Current window and opens "Exit" vehicle window
+     * "Exit" enables the operator to offload a vehicle
+     *
+     * calling "Exit" requrires two parameters
+     * the vehicle number as "car_number" in database
+     * the vehicle in-timestampe as "time_in" in database
+     *
+     * carNumber is already known (from the search box)
+     * the arrival time for the particular car is derived by searching for the car with CarNumber in the database
+     * returing its arrivalTime (Stored as time_in)
+     *
+     *
+     */
+    private void openExitCarFrame(String carNumber) {
+        String arrivalTime = null;
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement preparedStatement = connection.prepareStatement("SELECT time_in FROM cars WHERE car_number = ?")) {
+
+            preparedStatement.setString(1, carNumber);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    arrivalTime = resultSet.getString("time_in");
+                }
+            }
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage());
         }
 
-        Exit e = new Exit(carNumber, arrivalTime);
-        this.dispose();
+        new Exit(carNumber, arrivalTime);
+        dispose();
     }
 
     public static void main(String[] args) {
